@@ -13,14 +13,9 @@ from struct import pack, unpack
 from multiprocessing import Pool
 from getopt import gnu_getopt, GetoptError
 
-# Optional GTK imports
-try:
-    import gi
-    gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk, GLib, Gdk, Pango
-    HAS_GTK = True
-except (ImportError, ValueError):
-    HAS_GTK = False
+
+# GUI support is handled later in the file for GTK4
+HAS_GUI = False
 
 ZISO_MAGIC = 0x4F53495A
 DEFAULT_ALIGN = 0
@@ -266,435 +261,426 @@ def compress_zso(fname_in, fname_out, level, bsize, mp=False, threshold=95, alig
         for i in index_buf:
             idx = pack('I', i)
             fout.write(idx)
+
     finally:
-        fin.close()
-        fout.close()
+        if 'fin' in locals(): fin.close()
+        if 'fout' in locals(): fout.close()
+# =============================================================================
+# GUI Implementation (GTK4 + LibAdwaita)
+# =============================================================================
 
+try:
+    import gi
+    gi.require_version('Gtk', '4.0')
+    gi.require_version('Adw', '1')
+    from gi.repository import Gtk, Adw, GLib, Gio, GObject, Gdk
+    HAS_GUI = True
+except ImportError:
+    HAS_GUI = False
 
-class ZisoGUI(Gtk.ApplicationWindow):
-    def __init__(self, **kwargs):
-        super().__init__(title="ZISO Converter", **kwargs)
-        self.set_default_size(600, 450)
+if HAS_GUI:
+    class ZisoGUI(Adw.ApplicationWindow):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.set_title("ZISO Converter")
+            self.set_default_size(700, 600)
 
-        # HeaderBar
-        hb = Gtk.HeaderBar(show_close_button=True)
-        hb.set_title("ZISO Converter")
-        hb.set_subtitle("PS2 ISO/ZSO Compressor")
-        self.set_titlebar(hb)
+            # Main Layout: Toolbar View
+            toolbar_view = Adw.ToolbarView()
+            self.set_content(toolbar_view)
 
-        # Add buttons
-        box_add = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        box_add.get_style_context().add_class("linked")
-        
-        # Add file button
-        add_file_btn = Gtk.Button()
-        add_file_btn.add(Gtk.Image.new_from_icon_name("document-new-symbolic", Gtk.IconSize.BUTTON))
-        add_file_btn.set_tooltip_text("Adicionar Arquivos")
-        add_file_btn.connect("clicked", self.on_add_clicked)
-        box_add.pack_start(add_file_btn, False, False, 0)
-        
-        # Add folder button
-        add_folder_btn = Gtk.Button()
-        add_folder_btn.add(Gtk.Image.new_from_icon_name("folder-new-symbolic", Gtk.IconSize.BUTTON))
-        add_folder_btn.set_tooltip_text("Adicionar Pasta")
-        add_folder_btn.connect("clicked", self.on_add_folder_clicked)
-        box_add.pack_start(add_folder_btn, False, False, 0)
-        
-        hb.pack_start(box_add)
+            # Header Bar
+            header = Adw.HeaderBar()
+            toolbar_view.add_top_bar(header)
 
-        # Hamburger menu
-        menu_btn = Gtk.MenuButton()
-        menu_btn.add(Gtk.Image.new_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON))
-        
-        menu = Gtk.Menu()
-        clear_item = Gtk.MenuItem(label="Limpar Lista")
-        clear_item.connect("activate", self.on_clear_clicked)
-        menu.append(clear_item)
-        
-        about_item = Gtk.MenuItem(label="Sobre")
-        about_item.connect("activate", self.on_about_clicked)
-        menu.append(about_item)
-        
-        menu.show_all()
-        menu_btn.set_popup(menu)
-        hb.pack_end(menu_btn)
+            # Add Buttons to Header
+            self.btn_add_files = Gtk.Button(icon_name="document-new-symbolic")
+            self.btn_add_files.set_tooltip_text("Adicionar Arquivos")
+            self.btn_add_files.connect("clicked", self.on_add_clicked)
+            header.pack_start(self.btn_add_files)
 
-        # Main layout
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        vbox.set_margin_start(10)
-        vbox.set_margin_end(10)
-        vbox.set_margin_top(10)
-        vbox.set_margin_bottom(10)
-        self.add(vbox)
+            self.btn_add_folder = Gtk.Button(icon_name="folder-new-symbolic")
+            self.btn_add_folder.set_tooltip_text("Adicionar Pasta Recursivamente")
+            self.btn_add_folder.connect("clicked", self.on_add_folder_clicked)
+            header.pack_start(self.btn_add_folder)
 
-        # File list (TreeView)
-        self.store = Gtk.ListStore(str, str, str, str, float, str) # Filename, Size, Type, Progress_str, Progress_val, Output_path
-        self.tree = Gtk.TreeView(model=self.store)
-        
-        renderer_text = Gtk.CellRendererText()
-        column_file = Gtk.TreeViewColumn("Arquivo", renderer_text, text=0)
-        column_file.set_expand(True)
-        self.tree.append_column(column_file)
-        
-        column_size = Gtk.TreeViewColumn("Tamanho", renderer_text, text=1)
-        self.tree.append_column(column_size)
-        
-        renderer_progress = Gtk.CellRendererProgress()
-        column_progress = Gtk.TreeViewColumn("Status", renderer_progress, value=4, text=3)
-        column_progress.set_min_width(120)
-        self.tree.append_column(column_progress)
+            # Menu Button
+            menu = Gio.Menu()
+            menu.append("Limpar Lista", "app.clear")
+            menu.append("Sobre", "app.about")
+            
+            menu_btn = Gtk.MenuButton()
+            menu_btn.set_icon_name("open-menu-symbolic")
+            menu_btn.set_menu_model(menu)
+            header.pack_end(menu_btn)
 
-        scroll = Gtk.ScrolledWindow()
-        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scroll.set_vexpand(True)
-        scroll.add(self.tree)
-        vbox.pack_start(scroll, True, True, 0)
+            # Main Content Area (Vertical Box)
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+            toolbar_view.set_content(vbox)
 
-        # Format selector
-        hbox_fmt = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        vbox.pack_start(hbox_fmt, False, False, 0)
-        
-        hbox_fmt.pack_start(Gtk.Label(label="Formato de Exportação:"), False, False, 0)
-        self.combo_format = Gtk.ComboBoxText()
-        self.combo_format.append("zso", "Converter para ZSO")
-        self.combo_format.append("iso", "Converter para ISO (Descomprimir)")
-        self.combo_format.set_active(0)
-        hbox_fmt.pack_start(self.combo_format, True, True, 0)
+            # 1. File List Area (TreeView in ScrolledWindow)
+            self.store = Gtk.ListStore(str, str, str, str, float, str) # Name, Size, Type, Progress_str, Progress_val, Path
+            
+            self.tree = Gtk.TreeView(model=self.store)
+            self.tree.set_vexpand(True)
+            self.tree.set_enable_search(False)
+            self.tree.add_css_class("data-table") # Helper class for CSS
 
-        # Output folder
-        hbox_out = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        vbox.pack_start(hbox_out, False, False, 0)
-        
-        hbox_out.pack_start(Gtk.Label(label="Salvar em:"), False, False, 0)
-        
-        # Replacement for Gtk.FileChooserButton to ensure Portal usage
-        self.btn_select_folder = Gtk.Button(label="Selecionar Pasta...")
-        image = Gtk.Image.new_from_icon_name("folder-open-symbolic", Gtk.IconSize.BUTTON)
-        self.btn_select_folder.set_image(image)
-        self.btn_select_folder.connect("clicked", self.on_select_dest_folder)
-        hbox_out.pack_start(self.btn_select_folder, False, False, 0)
-        
-        self.lbl_dest_folder = Gtk.Label(label="<Nenhuma pasta selecionada>")
-        self.lbl_dest_folder.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-        self.lbl_dest_folder.set_alignment(0, 0.5)
-        # Style the label to look like a placeholder or path
-        hbox_out.pack_start(self.lbl_dest_folder, True, True, 0)
+            # Custom CSS for larger text
+            css_provider = Gtk.CssProvider()
+            css_provider.load_from_data(b"treeview { font-size: 16px; }")
+            Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-        # Dest folder variable storage
-        self.destination_folder = None
+            # Columns
+            # Make "Arquivo" column expand to push others to the right
+            self.add_column("Arquivo", 0, expand=True)
+            self.add_column("Tamanho", 1)
+            self.add_column("Status", 3)
+            
+            scroll = Gtk.ScrolledWindow()
+            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            scroll.set_child(self.tree)
+            scroll.set_min_content_height(300) # Ensure some height
+            
+            # Frame with .card style to match Adwaita groups
+            frame = Gtk.Frame()
+            frame.add_css_class("card")
+            frame.set_child(scroll)
+            
+            # Wrap list in Clamp to match PreferencesPage width
+            clamp_list = Adw.Clamp()
+            clamp_list.set_maximum_size(800)
+            clamp_list.set_child(frame)
+            # Add some vertical margin to separate from top/bottom
+            clamp_list.set_margin_top(24) # Match Adwaita standard spacing roughly
+            clamp_list.set_margin_bottom(12)
+            
+            vbox.append(clamp_list)
 
-        # Compression level
-        hbox_level = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        vbox.pack_start(hbox_level, False, False, 0)
-        
-        hbox_level.pack_start(Gtk.Label(label="Nível de Compressão (1-12):"), False, False, 0)
-        adj = Gtk.Adjustment(value=9, lower=1, upper=12, step_increment=1)
-        self.scale_level = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
-        self.scale_level.set_digits(0)
-        self.scale_level.set_value_pos(Gtk.PositionType.RIGHT)
-        hbox_level.pack_start(self.scale_level, True, True, 0)
+            # 2. Controls Area (Adwaita Preferences)
+            self.controls_page = Adw.PreferencesPage()
+            self.controls_group = Adw.PreferencesGroup()
+            self.controls_page.add(self.controls_group)
+            
+            # Format Selection Row
+            row_fmt = Adw.ActionRow(title="Formato de Exportação")
+            self.combo_format = Gtk.DropDown.new_from_strings(["Converter para ZSO", "Converter para ISO (Descomprimir)"])
+            self.combo_format.set_valign(Gtk.Align.CENTER)
+            row_fmt.add_suffix(self.combo_format)
+            self.controls_group.add(row_fmt)
 
-        # Convert button
-        self.convert_btn = Gtk.Button(label="Converter")
-        self.convert_btn.set_sensitive(False)
-        self.convert_btn.connect("clicked", self.on_convert_clicked)
-        # Style the button a bit
-        context = self.convert_btn.get_style_context()
-        context.add_class("suggested-action")
-        vbox.pack_start(self.convert_btn, False, False, 0)
+            # Compression Level Row
+            row_level = Adw.ActionRow(title="Nível de Compressão", subtitle="Maior nível = menor tamanho, mas mais lento")
+            adj = Gtk.Adjustment(value=9, lower=1, upper=12, step_increment=1)
+            self.scale_level = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
+            self.scale_level.set_draw_value(True)
+            self.scale_level.set_digits(0)
+            self.scale_level.set_hexpand(True)
+            self.scale_level.set_size_request(150, -1)
+            row_level.add_suffix(self.scale_level)
+            self.controls_group.add(row_level)
 
-        self.processing = False
+            # Destination Folder Row
+            self.row_folder = Adw.ActionRow(title="Salvar em", subtitle="Pasta de destino (Obrigatória)")
+            self.btn_select_folder = Gtk.Button(icon_name="folder-open-symbolic")
+            self.btn_select_folder.set_valign(Gtk.Align.CENTER)
+            self.btn_select_folder.connect("clicked", self.on_select_dest_folder)
+            
+            self.row_folder.add_suffix(self.btn_select_folder)
+            self.controls_group.add(self.row_folder)
+            
+            vbox.append(self.controls_page)
 
-        # Enable Drag & Drop
-        # We enable it on the window AND the treeview to cover all bases
-        TARGET_TYPE_URI_LIST = 80
-        dnd_list = [Gtk.TargetEntry.new("text/uri-list", 0, TARGET_TYPE_URI_LIST)]
-        
-        self.drag_dest_set(
-            Gtk.DestDefaults.ALL,
-            dnd_list,
-            Gdk.DragAction.COPY | Gdk.DragAction.MOVE
-        )
-        
-        self.connect("drag-data-received", self.on_drag_data_received)
-        
-        # Also setup treeview as destination just in case
-        self.tree.drag_dest_set(
-            Gtk.DestDefaults.ALL,
-            dnd_list,
-            Gdk.DragAction.COPY | Gdk.DragAction.MOVE
-        )
-        self.tree.connect("drag-data-received", self.on_drag_data_received)
-
-    def on_drag_data_received(self, widget, drag_context, x, y, data, info, time):
-        if info == 80: # TARGET_TYPE_URI_LIST
-            uris = data.get_uris()
-            if uris:
-                for uri in uris:
-                    try:
-                        # GLib.filename_from_uri returns (filename, hostname)
-                        # We only want the filename
-                        path = GLib.filename_from_uri(uri)[0]
-                        self.add_path(path)
-                    except Exception as e:
-                        print(f"Error parsing URI {uri}: {e}")
-                Gtk.drag_finish(drag_context, True, False, time)
-                return
-        
-        Gtk.drag_finish(drag_context, False, False, time)
-
-    def update_ui_state(self, widget=None):
-        if self.processing:
+            # 3. Convert Button (Clean layout without ActionBar)
+            box_bottom = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            box_bottom.set_margin_bottom(20) # Add padding at bottom
+            box_bottom.set_halign(Gtk.Align.CENTER)
+            
+            self.convert_btn = Gtk.Button(label="Converter")
+            self.convert_btn.add_css_class("suggested-action")
+            self.convert_btn.add_css_class("pill")
+            self.convert_btn.set_size_request(200, 50) # Make it big and clickable
             self.convert_btn.set_sensitive(False)
-            self.tree.set_sensitive(False)
-            self.btn_select_folder.set_sensitive(False)
-            return
-
-        has_files = len(self.store) > 0
-        has_folder = self.destination_folder is not None
-        
-        self.convert_btn.set_sensitive(has_files and has_folder)
-        self.tree.set_sensitive(True)
-        self.btn_select_folder.set_sensitive(True)
-
-    def on_select_dest_folder(self, btn):
-        dialog = Gtk.FileChooserNative(
-            title="Selecionar Pasta de Destino",
-            transient_for=self,
-            action=Gtk.FileChooserAction.SELECT_FOLDER,
-        )
-        
-        response = dialog.run()
-        if response == Gtk.ResponseType.ACCEPT:
-            folder = dialog.get_filename()
-            if folder:
-                self.destination_folder = folder
-                self.lbl_dest_folder.set_text(folder)
-                self.btn_select_folder.set_label("Alterar...")
-                self.update_ui_state()
-        dialog.destroy()
-
-    def on_add_clicked(self, btn):
-        dialog = Gtk.FileChooserNative(
-            title="Adicionar Arquivos",
-            transient_for=self,
-            action=Gtk.FileChooserAction.OPEN,
-        )
-        dialog.set_select_multiple(True)
-        
-        filter_iso = Gtk.FileFilter()
-        filter_iso.set_name("PS2 Images (.iso, .zso)")
-        filter_iso.add_pattern("*.iso")
-        filter_iso.add_pattern("*.ISO")
-        filter_iso.add_pattern("*.zso")
-        filter_iso.add_pattern("*.ZSO")
-        dialog.add_filter(filter_iso)
-        
-        filter_all = Gtk.FileFilter()
-        filter_all.set_name("Todos os arquivos")
-        filter_all.add_pattern("*")
-        dialog.add_filter(filter_all)
-
-        response = dialog.run()
-        if response == Gtk.ResponseType.ACCEPT:
-            filenames = dialog.get_filenames()
-            for f in filenames:
-                self.add_path(f)
-        dialog.destroy()
-
-    def on_add_folder_clicked(self, btn):
-        dialog = Gtk.FileChooserNative(
-            title="Selecionar Pasta",
-            transient_for=self,
-            action=Gtk.FileChooserAction.SELECT_FOLDER,
-        )
-        
-        response = dialog.run()
-        if response == Gtk.ResponseType.ACCEPT:
-            folder = dialog.get_filename()
-            self.add_path(folder)
-        dialog.destroy()
-
-    def add_path(self, path):
-        if os.path.isfile(path):
-            self.add_file_to_list(path)
-        elif os.path.isdir(path):
-            for root, dirs, files in os.walk(path):
-                for f in files:
-                    if f.lower().endswith((".iso", ".zso")):
-                        self.add_file_to_list(os.path.join(root, f))
-
-    def add_file_to_list(self, filepath):
-        # Check for duplicates
-        for row in self.store:
-            if row[5] == filepath:
-                return
-
-        name = os.path.basename(filepath)
-        size = os.path.getsize(filepath)
-        size_str = self.format_size(size)
-        ext = os.path.splitext(filepath)[1].lower()
-        
-        # Determine likely output (default same folder)
-        if ext == ".iso":
-            out_path = filepath.rsplit('.', 1)[0] + ".zso"
-        else:
-            out_path = filepath.rsplit('.', 1)[0] + ".iso"
+            self.convert_btn.connect("clicked", self.on_convert_clicked)
             
-        self.store.append([name, size_str, ext, "Pendente", 0.0, filepath])
-        self.update_ui_state()
+            box_bottom.append(self.convert_btn)
+            vbox.append(box_bottom)
 
-    def format_size(self, size):
-        for unit in ['B', 'KB', 'MB', 'GB']:
-            if size < 1024.0:
-                return "%3.1f %s" % (size, unit)
-            size /= 1024.0
-        return "%3.1f TB" % size
+            # Drop Target (Drag & Drop)
+            drop_target = Gtk.DropTarget.new(Gio.File, Gdk.DragAction.COPY)
+            drop_target.connect("drop", self.on_drop)
+            self.add_controller(drop_target)
 
-    def on_clear_clicked(self, item):
-        self.store.clear()
-        self.update_ui_state()
+            # Internal State
+            self.destination_folder = None
+            self.processing = False
 
-    def on_about_clicked(self, item):
-        about = Gtk.AboutDialog(transient_for=self)
-        about.set_program_name("ZISO Converter")
-        about.set_version("2.1")
-        about.set_authors(["Virtuous Flame (Original)", "Gabriel (GUI Edition)"])
-        about.set_comments("Conversor de ISO de PS2 para o formato comprimido ZSO.")
-        about.set_website("https://github.com/codestation/ziso")
-        about.run()
-        about.destroy()
+        def add_column(self, title, id, expand=False):
+            col = Gtk.TreeViewColumn(title, Gtk.CellRendererText(), text=id)
+            col.set_expand(expand)
+            self.tree.append_column(col)
 
-    def on_convert_clicked(self, btn):
-        if self.processing:
-            return
-        
-        self.processing = True
-        self.update_ui_state()
-        
-        target_fmt = self.combo_format.get_active_id()
-        level = int(self.scale_level.get_value())
-        dest_folder = self.destination_folder
-        
-        threading.Thread(target=self.process_queue, args=(target_fmt, level, dest_folder), daemon=True).start()
+        def on_drop(self, target, value, x, y):
+            if isinstance(value, Gio.File):
+                self.add_gio_file(value)
+                return True
+            return False
 
-    def process_queue(self, target_fmt, level, dest_folder):
-        for row in self.store:
-            # row: [name, size, ext, progress_str, progress_val, full_path]
-            input_path = row[5]
-            ext = row[2]
-            
-            # Validation: Skip invalid conversions
-            if target_fmt == "zso" and ext == ".zso":
-                GLib.idle_add(self.update_row_status, row.iter, "Ignorado (Já é ZSO)", 0)
-                continue
-            if target_fmt == "iso" and ext == ".iso":
-                GLib.idle_add(self.update_row_status, row.iter, "Ignorado (Já é ISO)", 0)
-                continue
-
-            # Determine output filename
-            input_filename = os.path.basename(input_path)
-            input_basename = os.path.splitext(input_filename)[0]
-            
-            if target_fmt == "zso":
-                output_filename = input_basename + ".zso"
-            else:
-                output_filename = input_basename + ".iso"
-
-            if dest_folder:
-                output_path = os.path.join(dest_folder, output_filename)
-            else:
-                # Fallback to same folder as input
-                output_path = os.path.join(os.path.dirname(input_path), output_filename)
-
-            def update_progress(block, total, write_pos=None):
-                percent = (block / total) * 100
-                GLib.idle_add(self.update_row_status, row.iter, f"{percent:.1f}%", percent)
-
-            GLib.idle_add(self.update_row_status, row.iter, "Processando...", 0)
-            
+        def add_gio_file(self, gfile):
             try:
-                if target_fmt == "zso":
-                    compress_zso(input_path, output_path, level, DEFAULT_BLOCK_SIZE, progress_callback=update_progress)
+                info = gfile.query_info("standard::name,standard::type", Gio.FileQueryInfoFlags.NONE, None)
+                if info.get_file_type() == Gio.FileType.DIRECTORY:
+                    # Recursive add
+                    enumerator = gfile.enumerate_children("standard::name,standard::type", Gio.FileQueryInfoFlags.NONE, None)
+                    while True:
+                        file_info = enumerator.next_file(None)
+                        if file_info is None:
+                            break
+                        child = enumerator.get_child(file_info)
+                        self.add_gio_file(child)
                 else:
-                    decompress_zso(input_path, output_path, progress_callback=update_progress)
-                
-                GLib.idle_add(self.update_row_status, row.iter, "Concluído", 100)
+                    path = gfile.get_path()
+                    if path and path.lower().endswith((".iso", ".zso")):
+                        self.add_file_to_list(path)
             except Exception as e:
-                GLib.idle_add(self.update_row_status, row.iter, f"Erro: {str(e)}", 0)
+                print(f"Error reading file: {e}")
 
-        GLib.idle_add(self.finish_processing)
+        def on_add_clicked(self, btn):
+            dialog = Gtk.FileChooserNative(
+                title="Adicionar Arquivos",
+                transient_for=self,
+                action=Gtk.FileChooserAction.OPEN,
+            )
+            dialog.set_select_multiple(True)
+            
+            filter_iso = Gtk.FileFilter()
+            filter_iso.set_name("PS2 Images (.iso, .zso)")
+            filter_iso.add_pattern("*.iso")
+            filter_iso.add_pattern("*.ISO")
+            filter_iso.add_pattern("*.zso")
+            filter_iso.add_pattern("*.ZSO")
+            dialog.add_filter(filter_iso)
+            
+            def on_response(d, response):
+                if response == Gtk.ResponseType.ACCEPT:
+                    files = d.get_files()
+                    for f in files:
+                        self.add_gio_file(f)
+                d.destroy()
+
+            dialog.connect("response", on_response)
+            dialog.show()
+
+        def on_add_folder_clicked(self, btn):
+            dialog = Gtk.FileChooserNative(
+                title="Selecionar Pasta",
+                transient_for=self,
+                action=Gtk.FileChooserAction.SELECT_FOLDER,
+            )
+            
+            def on_response(d, response):
+                if response == Gtk.ResponseType.ACCEPT:
+                    f = d.get_file()
+                    self.add_gio_file(f)
+                d.destroy()
+
+            dialog.connect("response", on_response)
+            dialog.show()
+
+        def on_select_dest_folder(self, btn):
+            dialog = Gtk.FileChooserNative(
+                title="Selecionar Pasta de Destino",
+                transient_for=self,
+                action=Gtk.FileChooserAction.SELECT_FOLDER,
+            )
+            
+            def on_response(d, response):
+                if response == Gtk.ResponseType.ACCEPT:
+                    f = d.get_file()
+                    path = f.get_path()
+                    if path:
+                        self.destination_folder = path
+                        self.row_folder.set_subtitle(path)
+                        self.update_ui_state()
+                d.destroy()
+
+            dialog.connect("response", on_response)
+            dialog.show()
+
+        def add_file_to_list(self, filepath):
+            # Duplicate check
+            for row in self.store:
+                if row[5] == filepath:
+                    return
+
+            name = os.path.basename(filepath)
+            size = os.path.getsize(filepath)
+            
+            def format_size(s):
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if s < 1024.0: return "%3.1f %s" % (s, unit)
+                    s /= 1024.0
+                return "%3.1f TB" % s
+
+            self.store.append([name, format_size(size), os.path.splitext(filepath)[1].lower(), "Pendente", 0.0, filepath])
+            self.update_ui_state()
+
+        def update_ui_state(self):
+            if self.processing:
+                self.convert_btn.set_sensitive(False)
+                self.controls_group.set_sensitive(False)
+                return
+            
+            has_files = len(self.store) > 0
+            has_dest = self.destination_folder is not None
+            
+            self.convert_btn.set_sensitive(has_files and has_dest)
+            self.controls_group.set_sensitive(True)
+
+        def on_convert_clicked(self, btn):
+            if self.processing: return
+            self.processing = True
+            self.update_ui_state()
+            
+            target_is_zso = (self.combo_format.get_selected() == 0)
+            target_fmt = "zso" if target_is_zso else "iso"
+            level = int(self.scale_level.get_value())
+            
+            threading.Thread(target=self.process_queue, args=(target_fmt, level, self.destination_folder), daemon=True).start()
+
+        def process_queue(self, target_fmt, level, dest_folder):
+            for row in self.store:
+                input_path = row[5]
+                ext = row[2]
+                
+                if (target_fmt == "zso" and ext == ".zso") or (target_fmt == "iso" and ext == ".iso"):
+                    GLib.idle_add(self.update_status, row.iter, "Ignorado")
+                    continue
+
+                input_filename = os.path.basename(input_path)
+                out_name = os.path.splitext(input_filename)[0] + ("." + target_fmt)
+                output_path = os.path.join(dest_folder, out_name)
+
+                def progress_cb(block, total, write_pos=None):
+                    pct = (block / total) * 100
+                    GLib.idle_add(self.update_status, row.iter, f"{pct:.1f}%")
+
+                GLib.idle_add(self.update_status, row.iter, "Processando...")
+                try:
+                    if target_fmt == "zso":
+                        compress_zso(input_path, output_path, level, DEFAULT_BLOCK_SIZE, progress_callback=progress_cb)
+                    else:
+                        decompress_zso(input_path, output_path, progress_callback=progress_cb)
+                    GLib.idle_add(self.update_status, row.iter, "Concluído")
+                except Exception as e:
+                    GLib.idle_add(self.update_status, row.iter, "Erro")
+                    print(e)
+            
+            GLib.idle_add(self.finish_processing)
+
+        def update_status(self, iter, text):
+            self.store.set_value(iter, 3, text)
+
+        def finish_processing(self):
+            self.processing = False
+            self.update_ui_state()
+
+    class ZisoApp(Adw.Application):
+        def __init__(self):
+            super().__init__(application_id="org.ziso.gui", flags=Gio.ApplicationFlags.FLAGS_NONE)
+
+        def do_activate(self):
+            win = self.props.active_window
+            if not win:
+                win = ZisoGUI(application=self)
+            win.present()
+        
+        def do_startup(self):
+            Adw.Application.do_startup(self)
+            
+            action_clear = Gio.SimpleAction.new("clear", None)
+            action_clear.connect("activate", self.on_clear)
+            self.add_action(action_clear)
+            
+            action_about = Gio.SimpleAction.new("about", None)
+            action_about.connect("activate", self.on_about)
+            self.add_action(action_about)
+
+        def on_clear(self, action, param):
+            win = self.props.active_window
+            if win:
+                win.store.clear()
+                win.update_ui_state()
+
+        def on_about(self, action, param):
+            win = self.props.active_window
+            dialog = Adw.AboutWindow(transient_for=win)
+            dialog.set_application_name("ZISO Converter")
+            dialog.set_version("2.2")
+            dialog.set_developer_name("Virtuous Flame & Gabriel")
+            dialog.set_comments("Modern GTK4/Adwaita GUI for ZISO")
+            dialog.set_website("https://github.com/codestation/ziso")
+            dialog.present()
+
+
+def parse_args():
+    try:
+        optlist, args = gnu_getopt(sys.argv[1:], "c:b:mt:a:p:h")
+    except GetoptError as err:
+        print(str(err))
+        usage()
+        sys.exit(-1)
+
+    level = None
+    bsize = DEFAULT_BLOCK_SIZE
+    mp = MP_DEFAULT
+    threshold = COMPRESS_THREHOLD_DEFAULT
+    align = None
+    padding = DEFAULT_PADDING
+
+    for o, a in optlist:
+        if o == '-c':
+            level = int(a)
+        elif o == '-b':
+            bsize = int(a)
+        elif o == '-m':
+            mp = True
+        elif o == '-t':
+            threshold = min(int(a), 100)
+        elif o == '-a':
+            align = int(a)
+        elif o == '-p':
+            padding = bytes(a[0], encoding='utf8')
+        elif o == '-h':
+            usage()
+            sys.exit(0)
+
+    if level is None:
+        print("Error: Nível de compressão (-c) é obrigatório no modo CLI.")
+        usage()
+        sys.exit(-1)
+
+    try:
+        fname_in = args[0]
+        fname_out = args[1]
+    except IndexError:
+        print("Error: Você deve especificar os arquivos de entrada e saída.")
+        usage()
+        sys.exit(-1)
+
+    if bsize % 2048 != 0:
+        print("Error: Tamanho do bloco inválido. Deve ser múltiplo de 2048.")
+        sys.exit(-1)
     
-    def update_row_status(self, iter, status_str, status_val):
-        self.store.set_value(iter, 3, status_str)
-        self.store.set_value(iter, 4, status_val)
-
-    def finish_processing(self):
-        self.processing = False
-        self.convert_btn.set_sensitive(True)
-        self.tree.set_sensitive(True)
-        self.btn_select_folder.set_sensitive(True)
+    return level, bsize, fname_in, fname_out, mp, threshold, align, padding
 
 
 def main():
-    if not HAS_GTK or len(sys.argv) > 1:
+    if len(sys.argv) > 1:
         # CLI Mode
-        try:
-            optlist, args = gnu_getopt(sys.argv[1:], "c:b:mt:a:p:h")
-        except GetoptError as err:
-            print(str(err))
-            usage()
-            sys.exit(-1)
-
-        level = None
-        bsize = DEFAULT_BLOCK_SIZE
-        mp = MP_DEFAULT
-        threshold = COMPRESS_THREHOLD_DEFAULT
-        align = None
-        padding = DEFAULT_PADDING
-
-        for o, a in optlist:
-            if o == '-c':
-                level = int(a)
-            elif o == '-b':
-                bsize = int(a)
-            elif o == '-m':
-                mp = True
-            elif o == '-t':
-                threshold = min(int(a), 100)
-            elif o == '-a':
-                align = int(a)
-            elif o == '-p':
-                padding = bytes(a[0], encoding='utf8')
-            elif o == '-h':
-                usage()
-                sys.exit(0)
-
-        if level is None:
-            if not HAS_GTK:
-                print("Error: Nível de compressão (-c) é obrigatório no modo CLI.")
-                usage()
-                sys.exit(-1)
-            else:
-                # No args provided, but GTK is available, launch GUI
-                app = Gtk.Application(application_id="org.ziso.gui")
-                app.connect("activate", lambda a: ZisoGUI(application=a).show_all())
-                app.run(sys.argv)
-                return
-
-        try:
-            fname_in = args[0]
-            fname_out = args[1]
-        except IndexError:
-            print("Error: Você deve especificar os arquivos de entrada e saída.")
-            usage()
-            sys.exit(-1)
-
-        if bsize % 2048 != 0:
-            print("Error: Tamanho do bloco inválido. Deve ser múltiplo de 2048.")
-            sys.exit(-1)
-
-        print(f"ziso-python 2.0")
+        level, bsize, fname_in, fname_out, mp, threshold, align, padding = parse_args()
+        
+        print(f"ziso-python 2.1 (CLI)")
         if level == 0:
             print(f"Decompressing {fname_in} to {fname_out}...")
             decompress_zso(fname_in, fname_out)
@@ -703,12 +689,14 @@ def main():
             compress_zso(fname_in, fname_out, level, bsize, mp, threshold, align, padding)
         print("\nDone.")
 
+    elif HAS_GUI:
+        # GUI Mode
+        app = ZisoApp()
+        sys.exit(app.run(sys.argv))
     else:
-        # GUI Mode (no args provided)
-        app = Gtk.Application(application_id="org.ziso.gui")
-        app.connect("activate", lambda a: ZisoGUI(application=a).show_all())
-        app.run(sys.argv)
-
+        usage()
+        print("\nError: No GUI backend available (Gtk 4.0/Adw 1) and no CLI arguments provided.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
