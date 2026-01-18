@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=ZISO Converter
+Comment=Compress PS2 ISOs to ZSO format
+Exec=ziso
+Icon=org.ziso.gui
+Type=Application
+Terminal=false
+Categories=Utility;Compression;
+Keywords=ps2;iso;zso;compression;
+StartupNotify=true

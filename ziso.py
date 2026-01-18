@@ -283,7 +283,7 @@ if HAS_GUI:
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
             self.set_title("ZISO Converter")
-            self.set_default_size(700, 600)
+            self.set_default_size(800, 850)
 
             # Main Layout: Toolbar View
             toolbar_view = Adw.ToolbarView()
@@ -293,16 +293,21 @@ if HAS_GUI:
             header = Adw.HeaderBar()
             toolbar_view.add_top_bar(header)
 
-            # Add Buttons to Header
-            self.btn_add_files = Gtk.Button(icon_name="document-new-symbolic")
-            self.btn_add_files.set_tooltip_text("Adicionar Arquivos")
-            self.btn_add_files.connect("clicked", self.on_add_clicked)
-            header.pack_start(self.btn_add_files)
+            # Add Split Button to Header
+            self.split_btn = Adw.SplitButton(icon_name="document-new-symbolic")
+            self.split_btn.set_tooltip_text("Adicionar arquivos ou pastas")
+            self.split_btn.connect("clicked", self.on_add_clicked)
+            header.pack_start(self.split_btn)
 
-            self.btn_add_folder = Gtk.Button(icon_name="folder-new-symbolic")
-            self.btn_add_folder.set_tooltip_text("Adicionar Pasta Recursivamente")
-            self.btn_add_folder.connect("clicked", self.on_add_folder_clicked)
-            header.pack_start(self.btn_add_folder)
+            # Dropdown Menu for SplitButton
+            menu_add = Gio.Menu()
+            menu_add.append("Adicionar Pasta...", "win.add-folder")
+            self.split_btn.set_menu_model(menu_add)
+
+            # Register Actions
+            action_add_folder = Gio.SimpleAction.new("add-folder", None)
+            action_add_folder.connect("activate", self.on_add_folder_action)
+            self.add_action(action_add_folder)
 
             # Menu Button
             menu = Gio.Menu()
@@ -318,13 +323,38 @@ if HAS_GUI:
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
             toolbar_view.set_content(vbox)
 
-            # 1. File List Area (TreeView in ScrolledWindow)
+            # 2. Main Content: Manual Clamp for wider content (User request)
+            # Adw.PreferencesPage forces a narrow width, so we build our own structure.
+            scroll_main = Gtk.ScrolledWindow()
+            scroll_main.set_vexpand(True)
+            vbox.append(scroll_main)
+
+            clamp_main = Adw.Clamp()
+            clamp_main.set_maximum_size(800)   # Wider content
+            clamp_main.set_tightening_threshold(600)
+            # Margins around the clamp content
+            clamp_main.set_margin_top(10)
+            clamp_main.set_margin_bottom(10)
+            clamp_main.set_margin_start(10)
+            clamp_main.set_margin_end(10)
+            scroll_main.set_child(clamp_main)
+
+            content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+            clamp_main.set_child(content_box)
+
+            # --- Group 1: File List ---
+            # We use a PreferencesGroup to hold the list, ensuring it aligns perfectly with the controls.
+            self.list_group = Adw.PreferencesGroup()
+            # self.list_group.set_title("Arquivos") # Title removed per user request
+            content_box.append(self.list_group)
+
+            # 1. File List Setup
             self.store = Gtk.ListStore(str, str, str, str, float, str) # Name, Size, Type, Progress_str, Progress_val, Path
             
             self.tree = Gtk.TreeView(model=self.store)
             self.tree.set_vexpand(True)
             self.tree.set_enable_search(False)
-            self.tree.add_css_class("data-table") # Helper class for CSS
+            self.tree.add_css_class("data-table") 
 
             # Custom CSS for larger text
             css_provider = Gtk.CssProvider()
@@ -332,7 +362,6 @@ if HAS_GUI:
             Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
             # Columns
-            # Make "Arquivo" column expand to push others to the right
             self.add_column("Arquivo", 0, expand=True)
             self.add_column("Tamanho", 1)
             self.add_column("Status", 3)
@@ -340,27 +369,20 @@ if HAS_GUI:
             scroll = Gtk.ScrolledWindow()
             scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
             scroll.set_child(self.tree)
-            scroll.set_min_content_height(300) # Ensure some height
+            scroll.set_min_content_height(350) # Taller list
             
-            # Frame with .card style to match Adwaita groups
+            # Frame with .card style
             frame = Gtk.Frame()
             frame.add_css_class("card")
             frame.set_child(scroll)
-            
-            # Wrap list in Clamp to match PreferencesPage width
-            clamp_list = Adw.Clamp()
-            clamp_list.set_maximum_size(800)
-            clamp_list.set_child(frame)
-            # Add some vertical margin to separate from top/bottom
-            clamp_list.set_margin_top(24) # Match Adwaita standard spacing roughly
-            clamp_list.set_margin_bottom(12)
-            
-            vbox.append(clamp_list)
 
-            # 2. Controls Area (Adwaita Preferences)
-            self.controls_page = Adw.PreferencesPage()
+            # Add Frame directly to the Group
+            self.list_group.add(frame)
+
+
+            # --- Group 2: Controls ---
             self.controls_group = Adw.PreferencesGroup()
-            self.controls_page.add(self.controls_group)
+            content_box.append(self.controls_group)
             
             # Format Selection Row
             row_fmt = Adw.ActionRow(title="Formato de Exportação")
@@ -388,8 +410,6 @@ if HAS_GUI:
             
             self.row_folder.add_suffix(self.btn_select_folder)
             self.controls_group.add(self.row_folder)
-            
-            vbox.append(self.controls_page)
 
             # 3. Convert Button (Clean layout without ActionBar)
             box_bottom = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -471,7 +491,7 @@ if HAS_GUI:
             dialog.connect("response", on_response)
             dialog.show()
 
-        def on_add_folder_clicked(self, btn):
+        def on_add_folder_action(self, action, param):
             dialog = Gtk.FileChooserNative(
                 title="Selecionar Pasta",
                 transient_for=self,
@@ -568,7 +588,8 @@ if HAS_GUI:
                 GLib.idle_add(self.update_status, row.iter, "Processando...")
                 try:
                     if target_fmt == "zso":
-                        compress_zso(input_path, output_path, level, DEFAULT_BLOCK_SIZE, progress_callback=progress_cb)
+                        # User requested MP enabled by default in GUI
+                        compress_zso(input_path, output_path, level, DEFAULT_BLOCK_SIZE, mp=True, progress_callback=progress_cb)
                     else:
                         decompress_zso(input_path, output_path, progress_callback=progress_cb)
                     GLib.idle_add(self.update_status, row.iter, "Concluído")
@@ -616,6 +637,7 @@ if HAS_GUI:
             win = self.props.active_window
             dialog = Adw.AboutWindow(transient_for=win)
             dialog.set_application_name("ZISO Converter")
+            dialog.set_application_icon("org.ziso.gui")
             dialog.set_version("2.2")
             dialog.set_developer_name("Virtuous Flame & Gabriel")
             dialog.set_comments("Modern GTK4/Adwaita GUI for ZISO")
