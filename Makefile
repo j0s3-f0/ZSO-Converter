@@ -13,4 +13,4 @@ run:
 	flatpak run $(APP_ID)
 
 clean:
-	rm -rf $(BUILD_DIR) .flatpak-builder
+	rm -rf $(BUILD_DIR) .flatpak-builder locale

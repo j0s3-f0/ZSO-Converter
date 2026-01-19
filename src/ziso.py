@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
 import sys
 import os
-
-# Force usage of xdg-desktop-portal if not already set, 
-# this ensures native file choosers on KDE/Wayland/etc.
-os.environ.setdefault("GTK_USE_PORTAL", "1")
-
 import threading
+import locale
 
 import lz4.block
 from struct import pack, unpack
 from multiprocessing import Pool
 from getopt import gnu_getopt, GetoptError
+import gettext
+
+# Setup translation
+APP_ID = "org.ziso.gui"
+LOCALE_DIR = "/app/share/locale" if os.path.exists("/app") else os.path.join(os.path.dirname(__file__), "..", "locale")
+
+try:
+    locale.setlocale(locale.LC_ALL, '')
+except locale.Error:
+    print("Warning: Failed to set locale to default.")
+
+gettext.bindtextdomain(APP_ID, LOCALE_DIR)
+gettext.textdomain(APP_ID)
+_ = gettext.gettext
 
 
 
@@ -280,7 +290,7 @@ if HAS_GUI:
     class ZisoGUI(Adw.ApplicationWindow):
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
-            self.set_title("ZSO Converter")
+            self.set_title(_("ZSO Converter"))
             self.set_default_size(800, 850)
 
             # Main Layout: Toolbar View
@@ -293,13 +303,13 @@ if HAS_GUI:
 
             # Add Split Button to Header
             self.split_btn = Adw.SplitButton(icon_name="document-new-symbolic")
-            self.split_btn.set_tooltip_text("Adicionar arquivos ou pastas")
+            self.split_btn.set_tooltip_text(_("Add files or folders"))
             self.split_btn.connect("clicked", self.on_add_clicked)
             header.pack_start(self.split_btn)
 
             # Dropdown Menu for SplitButton
             menu_add = Gio.Menu()
-            menu_add.append("Adicionar Pasta...", "win.add-folder")
+            menu_add.append(_("Add Folder..."), "win.add-folder")
             self.split_btn.set_menu_model(menu_add)
 
             # Register Actions
@@ -309,8 +319,8 @@ if HAS_GUI:
 
             # Menu Button
             menu = Gio.Menu()
-            menu.append("Limpar Lista", "app.clear")
-            menu.append("Sobre", "app.about")
+            menu.append(_("Clear List"), "app.clear")
+            menu.append(_("About"), "app.about")
             
             menu_btn = Gtk.MenuButton()
             menu_btn.set_icon_name("open-menu-symbolic")
@@ -343,7 +353,6 @@ if HAS_GUI:
             # --- Group 1: File List ---
             # We use a PreferencesGroup to hold the list, ensuring it aligns perfectly with the controls.
             self.list_group = Adw.PreferencesGroup()
-            # self.list_group.set_title("Arquivos") # Title removed per user request
             content_box.append(self.list_group)
 
             # 1. File List Setup
@@ -361,8 +370,8 @@ if HAS_GUI:
             Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
             # Columns
-            self.add_column("Arquivo", 0, expand=True)
-            self.add_column("Status", 2)
+            self.add_column(_("File"), 0, expand=True)
+            self.add_column(_("Status"), 2)
             
             scroll = Gtk.ScrolledWindow()
             scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -376,21 +385,19 @@ if HAS_GUI:
 
             # Add Frame directly to the Group
             self.list_group.add(frame)
-
-
             # --- Group 2: Controls ---
             self.controls_group = Adw.PreferencesGroup()
             content_box.append(self.controls_group)
-            
+
             # Format Selection Row
-            row_fmt = Adw.ActionRow(title="Formato de Exportação")
-            self.combo_format = Gtk.DropDown.new_from_strings(["Converter para ZSO", "Converter para ISO (Descomprimir)"])
+            row_fmt = Adw.ActionRow(title=_("Export Format"))
+            self.combo_format = Gtk.DropDown.new_from_strings([_("Convert to ZSO"), _("Convert to ISO (Decompress)")])
             self.combo_format.set_valign(Gtk.Align.CENTER)
             row_fmt.add_suffix(self.combo_format)
             self.controls_group.add(row_fmt)
 
             # Compression Level Row
-            row_level = Adw.ActionRow(title="Nível de Compressão", subtitle="Maior nível = menor tamanho, mas mais lento")
+            row_level = Adw.ActionRow(title=_("Compression Level"), subtitle=_("Higher level = smaller size, but slower"))
             adj = Gtk.Adjustment(value=9, lower=1, upper=12, step_increment=1)
             self.scale_level = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
             self.scale_level.set_draw_value(True)
@@ -401,7 +408,7 @@ if HAS_GUI:
             self.controls_group.add(row_level)
 
             # Destination Folder Row
-            self.row_folder = Adw.ActionRow(title="Salvar em", subtitle="Pasta de destino (Obrigatória)")
+            self.row_folder = Adw.ActionRow(title=_("Save to"), subtitle=_("Destination folder (Required)"))
             self.btn_select_folder = Gtk.Button(icon_name="folder-open-symbolic")
             self.btn_select_folder.set_valign(Gtk.Align.CENTER)
             self.btn_select_folder.connect("clicked", self.on_select_dest_folder)
@@ -414,7 +421,7 @@ if HAS_GUI:
             box_bottom.set_margin_bottom(20) # Add padding at bottom
             box_bottom.set_halign(Gtk.Align.CENTER)
             
-            self.convert_btn = Gtk.Button(label="Converter")
+            self.convert_btn = Gtk.Button(label=_("Convert"))
             self.convert_btn.add_css_class("suggested-action")
             self.convert_btn.add_css_class("pill")
             self.convert_btn.set_size_request(200, 50) # Make it big and clickable
@@ -465,14 +472,14 @@ if HAS_GUI:
 
         def on_add_clicked(self, btn):
             dialog = Gtk.FileChooserNative(
-                title="Adicionar Arquivos",
+                title=_("Add Files"),
                 transient_for=self,
                 action=Gtk.FileChooserAction.OPEN,
             )
             dialog.set_select_multiple(True)
             
             filter_iso = Gtk.FileFilter()
-            filter_iso.set_name("PS2 Images (.iso, .zso)")
+            filter_iso.set_name(_("PS2 Images (.iso, .zso)"))
             filter_iso.add_pattern("*.iso")
             filter_iso.add_pattern("*.ISO")
             filter_iso.add_pattern("*.zso")
@@ -491,7 +498,7 @@ if HAS_GUI:
 
         def on_add_folder_action(self, action, param):
             dialog = Gtk.FileChooserNative(
-                title="Selecionar Pasta",
+                title=_("Select Folder"),
                 transient_for=self,
                 action=Gtk.FileChooserAction.SELECT_FOLDER,
             )
@@ -507,7 +514,7 @@ if HAS_GUI:
 
         def on_select_dest_folder(self, btn):
             dialog = Gtk.FileChooserNative(
-                title="Selecionar Pasta de Destino",
+                title=_("Select Destination Folder"),
                 transient_for=self,
                 action=Gtk.FileChooserAction.SELECT_FOLDER,
             )
@@ -533,7 +540,7 @@ if HAS_GUI:
 
             name = os.path.basename(filepath)
             
-            self.store.append([name, os.path.splitext(filepath)[1].lower(), "Pendente", 0.0, filepath])
+            self.store.append([name, os.path.splitext(filepath)[1].lower(), _("Pending"), 0.0, filepath])
             self.update_ui_state()
 
         def update_ui_state(self):
@@ -565,7 +572,7 @@ if HAS_GUI:
                 ext = row[1]
                 
                 if (target_fmt == "zso" and ext == ".zso") or (target_fmt == "iso" and ext == ".iso"):
-                    GLib.idle_add(self.update_status, row.iter, "Ignorado")
+                    GLib.idle_add(self.update_status, row.iter, _("Ignored"))
                     continue
 
                 input_filename = os.path.basename(input_path)
@@ -576,16 +583,16 @@ if HAS_GUI:
                     pct = (block / total) * 100
                     GLib.idle_add(self.update_status, row.iter, f"{pct:.1f}%")
 
-                GLib.idle_add(self.update_status, row.iter, "Processando...")
+                GLib.idle_add(self.update_status, row.iter, _("Processing..."))
                 try:
                     if target_fmt == "zso":
                         # User requested MP enabled by default in GUI
                         compress_zso(input_path, output_path, level, DEFAULT_BLOCK_SIZE, mp=True, progress_callback=progress_cb)
                     else:
                         decompress_zso(input_path, output_path, progress_callback=progress_cb)
-                    GLib.idle_add(self.update_status, row.iter, "Concluído")
+                    GLib.idle_add(self.update_status, row.iter, _("Completed"))
                 except Exception as e:
-                    GLib.idle_add(self.update_status, row.iter, "Erro")
+                    GLib.idle_add(self.update_status, row.iter, _("Error"))
                     print(e)
             
             GLib.idle_add(self.finish_processing)
@@ -628,11 +635,11 @@ if HAS_GUI:
             win = self.props.active_window
             Adw.AboutWindow(
                 transient_for=win,
-                application_name="ZSO Converter",
+                application_name=_("ZSO Converter"),
                 application_icon="org.ziso.gui",
                 version="2.2",
                 developer_name="Virtuous Flame & Gabriel",
-                comments="Modern GTK4/Adwaita GUI for ZISO",
+                comments=_("Modern GTK4/Adwaita GUI for ZSO"),
                 website="https://github.com/codestation/ziso"
             ).present()
 
