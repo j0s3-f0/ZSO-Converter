@@ -20,11 +20,11 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="4.4912329"
-     inkscape:cx="73.699139"
-     inkscape:cy="64.013603"
+     inkscape:zoom="2.8284271"
+     inkscape:cx="22.097087"
+     inkscape:cy="58.159533"
      inkscape:window-width="1920"
-     inkscape:window-height="1024"
+     inkscape:window-height="1020"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -39,18 +39,18 @@
        x2="100%"
        y2="100%">
       <stop
-         offset="0%"
-         style="stop-color:#3b82f6;stop-opacity:1"
+         offset="0"
+         style="stop-color:#3584e4;stop-opacity:1;"
          id="stop1" />
       <!-- Azul Brilhante -->
       <stop
-         offset="50%"
-         style="stop-color:#1e40af;stop-opacity:1"
+         offset="0.5"
+         style="stop-color:#1c71d8;stop-opacity:1;"
          id="stop2" />
       <!-- Azul Cobalto -->
       <stop
-         offset="100%"
-         style="stop-color:#172554;stop-opacity:1"
+         offset="1"
+         style="stop-color:#1a5fb4;stop-opacity:1;"
          id="stop3" />
       <!-- Azul Noite (em vez de preto) -->
     </linearGradient>
@@ -62,12 +62,12 @@
        x2="0%"
        y2="100%">
       <stop
-         offset="0%"
-         style="stop-color:#1e3a8a;stop-opacity:1"
+         offset="0"
+         style="stop-color:#1c71d8;stop-opacity:1;"
          id="stop4" />
       <stop
-         offset="100%"
-         style="stop-color:#0f172a;stop-opacity:1"
+         offset="1"
+         style="stop-color:#1a5fb4;stop-opacity:1;"
          id="stop5" />
     </linearGradient>
     <!-- Reflexo mais pronunciado para ajudar a clarear -->
@@ -122,87 +122,218 @@
            id="feMergeNode9" />
       </feMerge>
     </filter>
+    <linearGradient
+       id="glassSheen-3"
+       x1="10"
+       y1="8"
+       x2="118"
+       y2="116"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.1792786,0,0,1.1371012,-11.505398,-8.8173039)">
+      <stop
+         offset="0%"
+         style="stop-color:#ffffff;stop-opacity:0.2"
+         id="stop6-6" />
+      <stop
+         offset="40%"
+         style="stop-color:#ffffff;stop-opacity:0"
+         id="stop7-7" />
+      <stop
+         offset="100%"
+         style="stop-color:#ffffff;stop-opacity:0.1"
+         id="stop8-5" />
+    </linearGradient>
+    <linearGradient
+       id="ps2SurfaceLight-3"
+       x1="9.75"
+       y1="7.75"
+       x2="118.25"
+       y2="116.25"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.1792786,0,0,1.1371012,-11.505398,-8.8173039)">
+      <stop
+         offset="0"
+         style="stop-color:#3584e4;stop-opacity:1;"
+         id="stop1-5" />
+      <!-- Azul Brilhante -->
+      <stop
+         offset="0.5"
+         style="stop-color:#1c71d8;stop-opacity:1;"
+         id="stop2-6" />
+      <!-- Azul Cobalto -->
+      <stop
+         offset="1"
+         style="stop-color:#1a5fb4;stop-opacity:1;"
+         id="stop3-2" />
+      <!-- Azul Noite (em vez de preto) -->
+    </linearGradient>
+    <linearGradient
+       id="ps2BottomEdgeLight-9"
+       x1="9.6999998"
+       y1="11.7"
+       x2="9.6999998"
+       y2="120.3"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.1792786,0,0,1.1371012,-11.505398,-8.8173039)">
+      <stop
+         offset="0"
+         style="stop-color:#1c71d8;stop-opacity:1;"
+         id="stop4-1" />
+      <stop
+         offset="1"
+         style="stop-color:#1a5fb4;stop-opacity:1;"
+         id="stop5-2" />
+    </linearGradient>
+    <linearGradient
+       id="glassSheen-7"
+       x1="10"
+       y1="8"
+       x2="118"
+       y2="116"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.0940952,0,0,1.0549644,-5.3605517,-3.2041284)">
+      <stop
+         offset="0%"
+         style="stop-color:#ffffff;stop-opacity:0.2"
+         id="stop6-0" />
+      <stop
+         offset="40%"
+         style="stop-color:#ffffff;stop-opacity:0"
+         id="stop7-9" />
+      <stop
+         offset="100%"
+         style="stop-color:#ffffff;stop-opacity:0.1"
+         id="stop8-3" />
+    </linearGradient>
+    <linearGradient
+       id="ps2SurfaceLight-6"
+       x1="9.75"
+       y1="7.75"
+       x2="118.25"
+       y2="116.25"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.0940952,0,0,1.0549644,-5.3605517,-3.2041284)">
+      <stop
+         offset="0"
+         style="stop-color:#3584e4;stop-opacity:1;"
+         id="stop1-0" />
+      <!-- Azul Brilhante -->
+      <stop
+         offset="0.5"
+         style="stop-color:#1c71d8;stop-opacity:1;"
+         id="stop2-62" />
+      <!-- Azul Cobalto -->
+      <stop
+         offset="1"
+         style="stop-color:#1a5fb4;stop-opacity:1;"
+         id="stop3-6" />
+      <!-- Azul Noite (em vez de preto) -->
+    </linearGradient>
+    <linearGradient
+       id="ps2BottomEdgeLight-1"
+       x1="9.6999998"
+       y1="11.7"
+       x2="9.6999998"
+       y2="120.3"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.0940952,0,0,1.0549644,-5.3605517,-3.2041284)">
+      <stop
+         offset="0"
+         style="stop-color:#1c71d8;stop-opacity:1;"
+         id="stop4-8" />
+      <stop
+         offset="1"
+         style="stop-color:#1a5fb4;stop-opacity:1;"
+         id="stop5-7" />
+    </linearGradient>
   </defs>
   <!-- Sombra externa -->
-  <circle
-     cx="64"
-     cy="67"
-     r="54"
-     fill="rgba(0,0,0,0.25)"
-     filter="url(#gnomeShadow)"
-     id="circle9" />
   <!-- Espessura inferior (Base sólida) -->
-  <circle
-     cx="64"
-     cy="66"
-     r="54"
-     fill="url(#ps2BottomEdgeLight)"
-     id="circle10" />
   <!-- Superfície superior do DVD -->
-  <circle
-     cx="64"
-     cy="62"
-     r="54"
-     fill="url(#ps2SurfaceLight)"
-     stroke="#60a5fa"
-     stroke-width="0.5"
-     id="circle11" />
   <!-- Overlay de brilho -->
-  <circle
-     cx="64"
-     cy="62"
-     r="54"
-     fill="url(#glassSheen)"
-     id="circle12" />
   <!-- Detalhe do anel interno -->
-  <circle
-     cx="64"
-     cy="62"
-     r="20"
-     fill="none"
-     stroke="#bfdbfe"
-     stroke-width="0.8"
-     opacity="0.5"
-     id="circle13" />
   <!-- Orifício central -->
   <!-- Parede interna do furo (azul escuro) -->
-  <circle
-     cx="64"
-     cy="60.172588"
-     r="8"
-     fill="#172554"
-     id="circle14" />
   <!-- Fundo vazio (branco) -->
-  <circle
-     cx="64"
-     cy="62"
-     r="8"
+  <!-- Highlight Superior (Brilho da Borda) -->
+  <!-- Texto PS2 -->
+  <!-- Detalhe decorativo retangular -->
+  <ellipse
+     cx="64.661537"
+     cy="66.423492"
+     fill="url(#ps2BottomEdgeLight)"
+     id="circle10"
+     style="display:inline;fill:url(#ps2BottomEdgeLight-1);stroke:#62a0ea;stroke-width:0.537;stroke-dasharray:none;stroke-opacity:1;enable-background:new"
+     rx="59.081139"
+     ry="56.968075" />
+  <ellipse
+     cx="64.661537"
+     cy="62.203648"
+     fill="url(#ps2SurfaceLight)"
+     stroke="#60a5fa"
+     stroke-width="0.537176"
+     id="circle11"
+     style="display:inline;fill:url(#ps2SurfaceLight-6);stroke:#62a0ea;stroke-opacity:1;enable-background:new;stroke-width:0.537;stroke-dasharray:none"
+     rx="59.081139"
+     ry="56.968075" />
+  <ellipse
+     cx="64.661537"
+     cy="62.203648"
+     fill="url(#glassSheen)"
+     id="circle12"
+     style="display:inline;fill:url(#glassSheen-7);stroke-width:1.07434;enable-background:new"
+     rx="59.081139"
+     ry="56.968075" />
+  <ellipse
+     cx="64.661537"
+     cy="62.203648"
+     fill="none"
+     stroke="#bfdbfe"
+     stroke-width="0.859482"
+     opacity="0.5"
+     id="circle13"
+     style="display:inline;stroke:#99c1f1;stroke-opacity:1;enable-background:new"
+     rx="21.881905"
+     ry="21.099285" />
+  <ellipse
+     cx="64.661537"
+     cy="60.275814"
+     fill="#172554"
+     id="circle14"
+     style="display:inline;fill:#1a5fb4;fill-opacity:1;stroke-width:1.07434;enable-background:new"
+     rx="8.7527609"
+     ry="8.4397144" />
+  <ellipse
+     cx="64.661537"
+     cy="62.203648"
      fill="#ffffff"
      stroke="#1e40af"
-     stroke-width="0.5"
-     id="circle15" />
-  <!-- Highlight Superior (Brilho da Borda) -->
+     stroke-width="0.537176"
+     id="circle15"
+     style="display:inline;stroke:#1c71d8;stroke-opacity:1;enable-background:new"
+     rx="8.7527609"
+     ry="8.4397144" />
   <path
-     d="M15,55 A50,50 0 0,1 113,55"
+     d="m 11.050875,54.818902 a 54.704758,52.748217 0 0 1 107.221315,0"
      fill="none"
      stroke="white"
-     stroke-width="1.2"
+     stroke-width="1.28923"
      stroke-linecap="round"
      opacity="0.7"
-     id="path15" />
-  <!-- Texto PS2 -->
+     id="path15"
+     style="display:inline;stroke:#f6f5f4;stroke-opacity:1;enable-background:new" />
   <text
-     x="64"
-     y="101"
+     x="63.49469"
+     y="105.24651"
      font-family="Arial, Helvetica, sans-serif"
-     font-size="14px"
+     font-size="15.0409px"
      fill="#e0f2fe"
      stroke="#3b82f6"
-     stroke-width="0.3"
+     stroke-width="0.322306"
      text-anchor="middle"
      font-weight="900"
-     style="font-style:italic;letter-spacing:-1px"
+     style="font-style:italic;letter-spacing:-1.07434px;display:inline;enable-background:new"
      id="text15"
-     inkscape:label="text15">ZSO</text>
-  <!-- Detalhe decorativo retangular -->
+     inkscape:label="text15"
+     transform="scale(1.0183772,0.98195443)">ZSO</text>
 </svg>

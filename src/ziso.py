@@ -26,7 +26,7 @@ import locale
 
 __author__ = "Virtuous Flame & Gabriel"
 __license__ = "GPL"
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 import lz4.block
 from struct import pack, unpack
@@ -339,7 +339,8 @@ if HAS_GUI:
             
             self.split_btn = self.builder.get_object("split_btn")
             self.controls_group = self.builder.get_object("controls_group")
-            self.combo_format = self.builder.get_object("combo_format")
+            # AdwToggleGroup
+            self.toggle_format = self.builder.get_object("toggle_format")
             self.scale_level = self.builder.get_object("scale_level")
             self.row_folder = self.builder.get_object("row_folder")
             self.btn_select_folder = self.builder.get_object("btn_select_folder")
@@ -482,8 +483,9 @@ if HAS_GUI:
             self.processing = True
             self.update_ui_state()
             
-            target_is_zso = (self.combo_format.get_selected() == 0)
-            target_fmt = "zso" if target_is_zso else "iso"
+            # Use active-name from AdwToggleGroup
+            active_name = self.toggle_format.get_active_name()
+            target_fmt = "zso" if active_name == "zso" else "iso"
             level = int(self.scale_level.get_value())
             
             threading.Thread(target=self.process_queue, args=(target_fmt, level, self.destination_folder), daemon=True).start()

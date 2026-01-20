@@ -33,17 +33,22 @@
 
   <object class="AdwApplicationWindow" id="window">
     <property name="title" translatable="yes">ZSO Converter</property>
-    <property name="default-width">800</property>
-    <property name="default-height">850</property>
+    <property name="default-width">600</property>
+    <property name="default-height">716</property>
     <property name="content">
       <object class="AdwToolbarView">
         <child type="top">
           <object class="AdwHeaderBar">
             <child type="start">
               <object class="AdwSplitButton" id="split_btn">
-                <property name="icon-name">document-new-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Add files or folders</property>
                 <property name="menu-model">menu_add</property>
+                <property name="child">
+                  <object class="AdwButtonContent">
+                    <property name="icon-name">document-new-symbolic</property>
+                    <property name="label" translatable="yes">Open</property>
+                  </object>
+                </property>
                 <!-- Signal connected in code -->
               </object>
             </child>
@@ -135,16 +140,22 @@
                               <object class="AdwActionRow">
                                 <property name="title" translatable="yes">Export Format</property>
                                 <child>
-                                  <object class="GtkDropDown" id="combo_format">
+                                  <object class="AdwToggleGroup" id="toggle_format">
                                     <property name="valign">center</property>
-                                    <property name="model">
-                                      <object class="GtkStringList">
-                                        <items>
-                                          <item translatable="yes">Convert to ZSO</item>
-                                          <item translatable="yes">Convert to ISO (Decompress)</item>
-                                        </items>
+                                    <child>
+                                      <object class="AdwToggle">
+                                        <property name="label">ZSO</property>
+                                        <property name="name">zso</property>
+                                        <property name="tooltip" translatable="yes">Compress to ZSO</property>
                                       </object>
-                                    </property>
+                                    </child>
+                                    <child>
+                                      <object class="AdwToggle">
+                                        <property name="label">ISO</property>
+                                        <property name="name">iso</property>
+                                        <property name="tooltip" translatable="yes">Decompress to ISO</property>
+                                      </object>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
@@ -187,6 +198,29 @@
                           </object>
                         </child>
 
+                        <!-- Convert Button (Moved inside scroll) -->
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">20</property>
+                            <property name="halign">center</property>
+                            <child>
+                              <object class="GtkButton" id="convert_btn">
+                                <property name="label" translatable="yes">Convert</property>
+                                <property name="width-request">200</property>
+                                <property name="height-request">50</property>
+                                <property name="sensitive">False</property>
+                                <style>
+                                  <class name="suggested-action"/>
+                                  <class name="pill"/>
+                                </style>
+                                <!-- Signal connected in code -->
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+
                       </object>
                     </child>
                   </object>
@@ -194,27 +228,7 @@
               </object>
             </child>
 
-            <!-- Bottom Area -->
-            <child>
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="margin-bottom">20</property>
-                <property name="halign">center</property>
-                <child>
-                  <object class="GtkButton" id="convert_btn">
-                    <property name="label" translatable="yes">Convert</property>
-                    <property name="width-request">200</property>
-                    <property name="height-request">50</property>
-                    <property name="sensitive">False</property>
-                    <style>
-                      <class name="suggested-action"/>
-                      <class name="pill"/>
-                    </style>
-                    <!-- Signal connected in code -->
-                  </object>
-                </child>
-              </object>
-            </child>
+
 
           </object>
         </property>
