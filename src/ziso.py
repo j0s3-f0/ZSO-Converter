@@ -26,7 +26,7 @@ import locale
 
 __author__ = "Virtuous Flame & Gabriel"
 __license__ = "GPL"
-__version__ = "1.0"
+__version__ = "1.0.1"
 
 import lz4.block
 from struct import pack, unpack
