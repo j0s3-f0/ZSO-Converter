@@ -311,163 +311,61 @@ except ImportError:
     HAS_GUI = False
 
 if HAS_GUI:
-    class ZisoGUI(Adw.ApplicationWindow):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            self.set_title(_("ZSO Converter"))
-            self.set_default_size(800, 850)
+    class ZisoGUI:
+        def __init__(self, app):
+            self.app = app
+            
+            # Locate UI file
+            ui_path = os.path.join(os.path.dirname(__file__), "window.ui")
+            if not os.path.exists(ui_path):
+                # Fallback for flatpak/installed location if needed
+                if os.path.exists("/app/share/ziso/window.ui"):
+                    ui_path = "/app/share/ziso/window.ui"
+            
+            # Load UI
+            self.builder = Gtk.Builder()
+            try:
+                self.builder.add_from_file(ui_path)
+            except Exception as e:
+                print(f"Error loading UI: {e}")
+                sys.exit(1)
 
-            # Main Layout: Toolbar View
-            toolbar_view = Adw.ToolbarView()
-            self.set_content(toolbar_view)
+            # Get Objects
+            self.window = self.builder.get_object("window")
+            self.window.set_application(app)
+            
+            self.store = self.builder.get_object("store")
+            self.tree = self.builder.get_object("tree")
+            
+            self.split_btn = self.builder.get_object("split_btn")
+            self.controls_group = self.builder.get_object("controls_group")
+            self.combo_format = self.builder.get_object("combo_format")
+            self.scale_level = self.builder.get_object("scale_level")
+            self.row_folder = self.builder.get_object("row_folder")
+            self.btn_select_folder = self.builder.get_object("btn_select_folder")
+            self.convert_btn = self.builder.get_object("convert_btn")
 
-            # Header Bar
-            header = Adw.HeaderBar()
-            toolbar_view.add_top_bar(header)
-
-            # Add Split Button to Header
-            self.split_btn = Adw.SplitButton(icon_name="document-new-symbolic")
-            self.split_btn.set_tooltip_text(_("Add files or folders"))
+            # Connect Signals
             self.split_btn.connect("clicked", self.on_add_clicked)
-            header.pack_start(self.split_btn)
+            self.btn_select_folder.connect("clicked", self.on_select_dest_folder)
+            self.convert_btn.connect("clicked", self.on_convert_clicked)
 
-            # Dropdown Menu for SplitButton
-            menu_add = Gio.Menu()
-            menu_add.append(_("Add Folder..."), "win.add-folder")
-            self.split_btn.set_menu_model(menu_add)
-
-            # Register Actions
+            # Window Actions
             action_add_folder = Gio.SimpleAction.new("add-folder", None)
             action_add_folder.connect("activate", self.on_add_folder_action)
-            self.add_action(action_add_folder)
-
-            # Menu Button
-            menu = Gio.Menu()
-            menu.append(_("Clear List"), "app.clear")
-            menu.append(_("About"), "app.about")
-            
-            menu_btn = Gtk.MenuButton()
-            menu_btn.set_icon_name("open-menu-symbolic")
-            menu_btn.set_menu_model(menu)
-            header.pack_end(menu_btn)
-
-            # Main Content Area (Vertical Box)
-            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-            toolbar_view.set_content(vbox)
-
-            # 2. Main Content: Manual Clamp for wider content (User request)
-            # Adw.PreferencesPage forces a narrow width, so we build our own structure.
-            scroll_main = Gtk.ScrolledWindow()
-            scroll_main.set_vexpand(True)
-            vbox.append(scroll_main)
-
-            clamp_main = Adw.Clamp()
-            clamp_main.set_maximum_size(800)   # Wider content
-            clamp_main.set_tightening_threshold(600)
-            # Margins around the clamp content
-            clamp_main.set_margin_top(10)
-            clamp_main.set_margin_bottom(10)
-            clamp_main.set_margin_start(10)
-            clamp_main.set_margin_end(10)
-            scroll_main.set_child(clamp_main)
-
-            content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
-            clamp_main.set_child(content_box)
-
-            # --- Group 1: File List ---
-            # We use a PreferencesGroup to hold the list, ensuring it aligns perfectly with the controls.
-            self.list_group = Adw.PreferencesGroup()
-            content_box.append(self.list_group)
-
-            # 1. File List Setup
-            self.store = Gtk.ListStore(str, str, str, float, str) # Name, Type, Status, Pct, Path
-            
-            self.tree = Gtk.TreeView(model=self.store)
-            self.tree.set_vexpand(True)
-            self.tree.set_enable_search(False)
-            self.tree.add_css_class("data-table")
-            self.tree.set_headers_visible(False)
-
-            # Custom CSS for larger text
-            css_provider = Gtk.CssProvider()
-            css_provider.load_from_data(b"treeview { font-size: 16px; }")
-            Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-
-            # Columns
-            self.add_column(_("File"), 0, expand=True)
-            self.add_column(_("Status"), 2)
-            
-            scroll = Gtk.ScrolledWindow()
-            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-            scroll.set_child(self.tree)
-            scroll.set_min_content_height(350) # Taller list
-            
-            # Frame with .card style
-            frame = Gtk.Frame()
-            frame.add_css_class("card")
-            frame.set_child(scroll)
-
-            # Add Frame directly to the Group
-            self.list_group.add(frame)
-            # --- Group 2: Controls ---
-            self.controls_group = Adw.PreferencesGroup()
-            content_box.append(self.controls_group)
-
-            # Format Selection Row
-            row_fmt = Adw.ActionRow(title=_("Export Format"))
-            self.combo_format = Gtk.DropDown.new_from_strings([_("Convert to ZSO"), _("Convert to ISO (Decompress)")])
-            self.combo_format.set_valign(Gtk.Align.CENTER)
-            row_fmt.add_suffix(self.combo_format)
-            self.controls_group.add(row_fmt)
-
-            # Compression Level Row
-            row_level = Adw.ActionRow(title=_("Compression Level"), subtitle=_("Higher level = smaller size, but slower"))
-            adj = Gtk.Adjustment(value=9, lower=1, upper=12, step_increment=1)
-            self.scale_level = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
-            self.scale_level.set_draw_value(True)
-            self.scale_level.set_digits(0)
-            self.scale_level.set_hexpand(True)
-            self.scale_level.set_size_request(150, -1)
-            row_level.add_suffix(self.scale_level)
-            self.controls_group.add(row_level)
-
-            # Destination Folder Row
-            self.row_folder = Adw.ActionRow(title=_("Save to"), subtitle=_("Destination folder (Required)"))
-            self.btn_select_folder = Gtk.Button(icon_name="folder-open-symbolic")
-            self.btn_select_folder.set_valign(Gtk.Align.CENTER)
-            self.btn_select_folder.connect("clicked", self.on_select_dest_folder)
-            
-            self.row_folder.add_suffix(self.btn_select_folder)
-            self.controls_group.add(self.row_folder)
-
-            # 3. Convert Button (Clean layout without ActionBar)
-            box_bottom = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            box_bottom.set_margin_bottom(20) # Add padding at bottom
-            box_bottom.set_halign(Gtk.Align.CENTER)
-            
-            self.convert_btn = Gtk.Button(label=_("Convert"))
-            self.convert_btn.add_css_class("suggested-action")
-            self.convert_btn.add_css_class("pill")
-            self.convert_btn.set_size_request(200, 50) # Make it big and clickable
-            self.convert_btn.set_sensitive(False)
-            self.convert_btn.connect("clicked", self.on_convert_clicked)
-            
-            box_bottom.append(self.convert_btn)
-            vbox.append(box_bottom)
+            self.window.add_action(action_add_folder)
 
             # Drop Target (Drag & Drop)
             drop_target = Gtk.DropTarget.new(Gio.File, Gdk.DragAction.COPY)
             drop_target.connect("drop", self.on_drop)
-            self.add_controller(drop_target)
+            self.window.add_controller(drop_target)
 
             # Internal State
             self.destination_folder = None
             self.processing = False
 
-        def add_column(self, title, id, expand=False):
-            col = Gtk.TreeViewColumn(title, Gtk.CellRendererText(), text=id)
-            col.set_expand(expand)
-            self.tree.append_column(col)
+        def present(self):
+            self.window.present()
 
         def on_drop(self, target, value, x, y):
             if isinstance(value, Gio.File):
@@ -497,7 +395,7 @@ if HAS_GUI:
         def on_add_clicked(self, btn):
             dialog = Gtk.FileChooserNative(
                 title=_("Add Files"),
-                transient_for=self,
+                transient_for=self.window,
                 action=Gtk.FileChooserAction.OPEN,
             )
             dialog.set_select_multiple(True)
@@ -523,7 +421,7 @@ if HAS_GUI:
         def on_add_folder_action(self, action, param):
             dialog = Gtk.FileChooserNative(
                 title=_("Select Folder"),
-                transient_for=self,
+                transient_for=self.window,
                 action=Gtk.FileChooserAction.SELECT_FOLDER,
             )
             
@@ -539,7 +437,7 @@ if HAS_GUI:
         def on_select_dest_folder(self, btn):
             dialog = Gtk.FileChooserNative(
                 title=_("Select Destination Folder"),
-                transient_for=self,
+                transient_for=self.window,
                 action=Gtk.FileChooserAction.SELECT_FOLDER,
             )
             
@@ -631,12 +529,12 @@ if HAS_GUI:
     class ZisoApp(Adw.Application):
         def __init__(self):
             super().__init__(application_id="org.ziso.gui", flags=Gio.ApplicationFlags.FLAGS_NONE)
+            self.gui = None
 
         def do_activate(self):
-            win = self.props.active_window
-            if not win:
-                win = ZisoGUI(application=self)
-            win.present()
+            if not self.gui:
+                self.gui = ZisoGUI(self)
+            self.gui.present()
         
         def do_startup(self):
             Adw.Application.do_startup(self)
@@ -650,13 +548,12 @@ if HAS_GUI:
             self.add_action(action_about)
 
         def on_clear(self, action, param):
-            win = self.props.active_window
-            if win:
-                win.store.clear()
-                win.update_ui_state()
+            if self.gui:
+                self.gui.store.clear()
+                self.gui.update_ui_state()
 
         def on_about(self, action, param):
-            win = self.props.active_window
+            win = self.get_active_window()
             Adw.AboutWindow(
                 transient_for=win,
                 application_name=_("ZSO Converter"),
