@@ -334,8 +334,7 @@ if HAS_GUI:
             self.window = self.builder.get_object("window")
             self.window.set_application(app)
             
-            self.store = self.builder.get_object("store")
-            self.tree = self.builder.get_object("tree")
+            self.file_list = self.builder.get_object("file_list")
             
             self.split_btn = self.builder.get_object("split_btn")
             self.controls_group = self.builder.get_object("controls_group")
@@ -357,7 +356,7 @@ if HAS_GUI:
             self.window.add_action(action_add_folder)
 
             # Drop Target (Drag & Drop)
-            drop_target = Gtk.DropTarget.new(Gio.File, Gdk.DragAction.COPY)
+            drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
             drop_target.connect("drop", self.on_drop)
             self.window.add_controller(drop_target)
 
@@ -369,8 +368,10 @@ if HAS_GUI:
             self.window.present()
 
         def on_drop(self, target, value, x, y):
-            if isinstance(value, Gio.File):
-                self.add_gio_file(value)
+            if isinstance(value, Gdk.FileList):
+                files = value.get_files()
+                for f in files:
+                    self.add_gio_file(f)
                 return True
             return False
 
@@ -457,46 +458,128 @@ if HAS_GUI:
 
         def add_file_to_list(self, filepath):
             # Duplicate check
-            for row in self.store:
-                if row[4] == filepath:
+            child = self.file_list.get_first_child()
+            while child:
+                if getattr(child, "filepath", None) == filepath:
                     return
+                child = child.get_next_sibling()
 
             name = os.path.basename(filepath)
             
-            self.store.append([name, os.path.splitext(filepath)[1].lower(), _("Pending"), 0.0, filepath])
+            row = Adw.ActionRow()
+            row.set_title(name)
+            row.set_subtitle(_("Pending"))
+            row.filepath = filepath
+            row.file_ext = os.path.splitext(filepath)[1].lower()
+            
+            # Remove button
+            btn_remove = Gtk.Button(icon_name="user-trash-symbolic")
+            btn_remove.add_css_class("flat")
+            btn_remove.set_valign(Gtk.Align.CENTER)
+            btn_remove.connect("clicked", lambda b: self.remove_row(row))
+            row.add_suffix(btn_remove)
+            
+            # Status Icon (hidden initially or showing pending state if desired, but let's just use subtitle for pending)
+            # We will add the custom checkmark later when done
+            
+            self.file_list.append(row)
+            self.update_ui_state()
+
+        def remove_row(self, row):
+            if self.processing: return
+            self.file_list.remove(row)
             self.update_ui_state()
 
         def update_ui_state(self):
             if self.processing:
                 self.convert_btn.set_sensitive(False)
                 self.controls_group.set_sensitive(False)
+                self.file_list.set_sensitive(False)
                 return
             
-            has_files = len(self.store) > 0
+            self.file_list.set_sensitive(True)
+            count = 0
+            child = self.file_list.get_first_child()
+            while child:
+                count += 1
+                child = child.get_next_sibling()
+
+            has_files = count > 0
             has_dest = self.destination_folder is not None
             
             self.convert_btn.set_sensitive(has_files and has_dest)
             self.controls_group.set_sensitive(True)
 
+        def process_queue(self, target_fmt, level, dest_folder):
+            
+            icon_path = os.path.join(os.path.dirname(__file__), "..", "data", "check-round-outline2-symbolic.svg")
+            
+            # Iterate using a list copy of children to avoid issues (though we aren't modifying structure)
+            # But we need to iterate in thread, safe way is to get items first? 
+            # No, we cannot touch widgets in thread. We need to iterate in main thread or similar?
+            # Actually, `store` was thread-safe-ish or we were just lucky. 
+            # GTK4 widgets are NOT thread safe. We must NOT access them in this thread.
+            # We need to gather data first or implement a safer queue mechanism.
+            
+            # However, for simplicity and matching previous structure:
+            # We will use GLib.idle_add to get the list of files to process *before* starting heavy work,
+            # OR we can just assume `process_queue` is running in a thread and we shouldn't touch widgets.
+            
+            # Refactor: Get all file data BEFORE thread start?
+            # The previous code iterated `self.store` in the thread. That was technically unsafe but worked sometimes.
+            # `self.store` is a GtkTreeModel. 
+            # We MUST NOT iterate Gtk widgets in a background thread.
+            
+            # FIX: We passed `process_queue` to Thread. 
+            # We should gather tasks first.
+            pass # Replaces below
+        
+        # New helper to gather tasks safely on main thread
+        def get_tasks(self):
+            tasks = []
+            child = self.file_list.get_first_child()
+            while child:
+                tasks.append({
+                    "row": child, 
+                    "filepath": child.filepath, 
+                    "ext": child.file_ext
+                })
+                child = child.get_next_sibling()
+            return tasks
+
+        def process_queue(self, target_fmt, level, dest_folder):
+             # This is running in a thread. 
+             # We can't access self.file_list children properties directly here safely if they were widgets.
+             # BUT `self.store` was data. `AdwActionRow` is a widget.
+             # We should rely on a pre-calculated list of tasks passed to this method, 
+             # OR use GLib.invoke to get them (but that blocks).
+             
+             # Better approach: The `on_convert_clicked` should generate the list of tasks.
+             pass 
+
+        # Redefining on_convert_clicked to fix the thread safety issue introduced by moving to Widgets
         def on_convert_clicked(self, btn):
             if self.processing: return
             self.processing = True
             self.update_ui_state()
             
-            # Use active-name from AdwToggleGroup
             active_name = self.toggle_format.get_active_name()
             target_fmt = "zso" if active_name == "zso" else "iso"
             level = int(self.scale_level.get_value())
             
-            threading.Thread(target=self.process_queue, args=(target_fmt, level, self.destination_folder), daemon=True).start()
+            # Gather tasks from widgets (Main Thread - Safe)
+            tasks = self.get_tasks()
+            
+            threading.Thread(target=self.process_queue_safe, args=(tasks, target_fmt, level, self.destination_folder), daemon=True).start()
 
-        def process_queue(self, target_fmt, level, dest_folder):
-            for row in self.store:
-                input_path = row[4]
-                ext = row[1]
+        def process_queue_safe(self, tasks, target_fmt, level, dest_folder):
+            for task in tasks:
+                row = task["row"]
+                input_path = task["filepath"]
+                ext = task["ext"]
                 
                 if (target_fmt == "zso" and ext == ".zso") or (target_fmt == "iso" and ext == ".iso"):
-                    GLib.idle_add(self.update_status, row.iter, _("Ignored"))
+                    GLib.idle_add(self.update_row_status, row, _("Ignored"), "warning")
                     continue
 
                 input_filename = os.path.basename(input_path)
@@ -505,24 +588,50 @@ if HAS_GUI:
 
                 def progress_cb(block, total, write_pos=None):
                     pct = (block / total) * 100
-                    GLib.idle_add(self.update_status, row.iter, f"{pct:.1f}%")
+                    GLib.idle_add(self.update_row_progress, row, f"{pct:.0f}%")
 
-                GLib.idle_add(self.update_status, row.iter, _("Processing..."))
+                GLib.idle_add(self.update_row_starting, row)
                 try:
                     if target_fmt == "zso":
-                        # User requested MP enabled by default in GUI
                         compress_zso(input_path, output_path, level, DEFAULT_BLOCK_SIZE, mp=True, progress_callback=progress_cb)
                     else:
                         decompress_zso(input_path, output_path, progress_callback=progress_cb)
-                    GLib.idle_add(self.update_status, row.iter, _("Completed"))
+                    GLib.idle_add(self.update_row_status, row, _("Completed"), "success")
                 except Exception as e:
-                    GLib.idle_add(self.update_status, row.iter, _("Error"))
+                    GLib.idle_add(self.update_row_status, row, _("Error"), "error")
                     print(e)
             
             GLib.idle_add(self.finish_processing)
 
-        def update_status(self, iter, text):
-            self.store.set_value(iter, 2, text)
+        def update_row_starting(self, row):
+            # Set subtitle to Processing
+            row.set_subtitle(_("Processing..."))
+            
+            # Add Percentage Label as suffix
+            lbl = Gtk.Label(label="0%")
+            lbl.add_css_class("dim-label") # Optional styling
+            row.add_suffix(lbl)
+            row.pct_label = lbl # keep ref
+
+        def update_row_progress(self, row, text):
+            if hasattr(row, 'pct_label'):
+                row.pct_label.set_label(text)
+
+        def update_row_status(self, row, text, css_class=None):
+            row.set_subtitle(text)
+            
+            # Reset classes
+            row.remove_css_class("success")
+            row.remove_css_class("warning")
+            row.remove_css_class("error")
+            
+            if css_class:
+                row.add_css_class(css_class)
+            
+            # Remove percentage label if exists
+            if hasattr(row, 'pct_label'):
+                row.remove(row.pct_label)
+                del row.pct_label
 
         def finish_processing(self):
             self.processing = False
@@ -551,7 +660,11 @@ if HAS_GUI:
 
         def on_clear(self, action, param):
             if self.gui:
-                self.gui.store.clear()
+                child = self.gui.file_list.get_first_child()
+                while child:
+                    next_child = child.get_next_sibling()
+                    self.gui.file_list.remove(child)
+                    child = next_child
                 self.gui.update_ui_state()
 
         def on_about(self, action, param):
@@ -560,7 +673,7 @@ if HAS_GUI:
                 transient_for=win,
                 application_name=_("ZSO Converter"),
                 application_icon="org.ziso.gui",
-                version="1.0",
+                version=__version__,
                 developer_name="Virtuous Flame & Gabriel",
                 comments=_("Modern GTK4/Adwaita GUI for ZSO"),
                 website="https://github.com/codestation/ziso"
