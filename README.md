@@ -2,7 +2,7 @@
 
 ![Icon](data/icon.svg)
 
-A modern and lightweight application to compress and decompress PS2 games in **ZSO** (ZISO) format, built with **GTK 4** and **LibAdwaita**.
+A modern and lightweight application to compress and decompress PS2 games in **ZSO** (ZISO) format, built with **GTK 4**, **LibAdwaita** and **Vibe Codding** using [Antigravity IDE](https://antigravity.google/)
 
 
 ## ✨ Features
@@ -47,4 +47,4 @@ make clean
 ## 📜 Credits
 
 - [Original Core: **Virtuous Flame**](https://github.com/ps2homebrew/Open-PS2-Loader/blob/45875da788b82002625137cfadbd0d398b674667/pc/ziso.py)
-- Development: **Gabriel**
+- Development: **Docmine17**
