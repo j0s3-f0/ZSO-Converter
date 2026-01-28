@@ -26,12 +26,12 @@ import locale
 
 __author__ = "Virtuous Flame & Gabriel"
 __license__ = "GPL"
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 
 import lz4.block
 from struct import pack, unpack
 from multiprocessing import Pool
-from getopt import gnu_getopt, GetoptError
+from multiprocessing import Pool
 import gettext
 
 # Setup translation
@@ -60,7 +60,7 @@ _ = gettext.gettext
 ZISO_MAGIC = 0x4F53495A
 DEFAULT_ALIGN = 0
 DEFAULT_BLOCK_SIZE = 0x800
-COMPRESS_THREHOLD_DEFAULT = 95
+COMPRESS_THRESHOLD_DEFAULT = 95
 DEFAULT_PADDING = br'X'
 
 MP_DEFAULT = False
@@ -91,17 +91,7 @@ def lz4_decompress(compressed, block_size):
     return decompressed
 
 
-def usage():
-    print("ziso-python (GTK4) 1.0 by Virtuous Flame & Gabriel")
-    print("Usage: ziso [-c level] [-m] [-t percent] [-h] infile outfile")
-    print("  -c level: 1-12 compress ISO to ZSO, 1 for standard compression, >1 for high compression")
-    print("              0 decompress ZSO to ISO")
-    print("  -b size:  2048-8192, specify block size (2048 by default)")
-    print("  -m Use multiprocessing acceleration for compressing")
-    print("  -t percent Compression Threshold (1-100)")
-    print("  -a align Padding alignment 0=small/slow 6=fast/large")
-    print("  -p pad Padding byte")
-    print("  -h this help")
+
 
 
 def open_input_output(fname_in, fname_out):
@@ -251,10 +241,10 @@ def compress_zso(fname_in, fname_out, level, bsize, mp=False, threshold=95, alig
             elif percent_cnt >= percent_period and percent_period != 0:
                 percent_cnt = 0
                 if block == 0:
-                    print("compress %3d%% avarage rate %3d%%\r" % (
+                    print("compress %3d%% average rate %3d%%\r" % (
                         block / percent_period, 0), file=sys.stderr, end='\r')
                 else:
-                    print("compress %3d%% avarage rate %3d%%\r" % (
+                    print("compress %3d%% average rate %3d%%\r" % (
                         block / percent_period, 100*write_pos/(block*block_size)), file=sys.stderr, end='\r')
 
             if mp:
@@ -340,8 +330,6 @@ if HAS_GUI:
 
             # Get Objects
             self.window = self.builder.get_object("window")
-            self.window.set_application(app)
-            
             self.window.set_application(app)
             
             self.file_list = self.builder.get_object("file_list")
@@ -537,30 +525,6 @@ if HAS_GUI:
             if not self.processing:
                 self.convert_btn.set_sensitive(has_files and has_dest)
 
-        def process_queue(self, target_fmt, level, dest_folder):
-            
-            icon_path = os.path.join(os.path.dirname(__file__), "..", "data", "check-round-outline2-symbolic.svg")
-            
-            # Iterate using a list copy of children to avoid issues (though we aren't modifying structure)
-            # But we need to iterate in thread, safe way is to get items first? 
-            # No, we cannot touch widgets in thread. We need to iterate in main thread or similar?
-            # Actually, `store` was thread-safe-ish or we were just lucky. 
-            # GTK4 widgets are NOT thread safe. We must NOT access them in this thread.
-            # We need to gather data first or implement a safer queue mechanism.
-            
-            # However, for simplicity and matching previous structure:
-            # We will use GLib.idle_add to get the list of files to process *before* starting heavy work,
-            # OR we can just assume `process_queue` is running in a thread and we shouldn't touch widgets.
-            
-            # Refactor: Get all file data BEFORE thread start?
-            # The previous code iterated `self.store` in the thread. That was technically unsafe but worked sometimes.
-            # `self.store` is a GtkTreeModel. 
-            # We MUST NOT iterate Gtk widgets in a background thread.
-            
-            # FIX: We passed `process_queue` to Thread. 
-            # We should gather tasks first.
-            pass # Replaces below
-        
         # New helper to gather tasks safely on main thread
         def get_tasks(self):
             tasks = []
@@ -568,21 +532,11 @@ if HAS_GUI:
             while child:
                 tasks.append({
                     "row": child, 
-                    "filepath": child.filepath, 
-                    "ext": child.file_ext
+                    "filepath": getattr(child, "filepath", ""), 
+                    "ext": getattr(child, "file_ext", "")
                 })
                 child = child.get_next_sibling()
             return tasks
-
-        def process_queue(self, target_fmt, level, dest_folder):
-             # This is running in a thread. 
-             # We can't access self.file_list children properties directly here safely if they were widgets.
-             # BUT `self.store` was data. `AdwActionRow` is a widget.
-             # We should rely on a pre-calculated list of tasks passed to this method, 
-             # OR use GLib.invoke to get them (but that blocks).
-             
-             # Better approach: The `on_convert_clicked` should generate the list of tasks.
-             pass 
 
         # Redefining on_convert_clicked to fix the thread safety issue introduced by moving to Widgets
         def on_convert_clicked(self, btn):
@@ -701,80 +655,13 @@ if HAS_GUI:
             ).present()
 
 
-def parse_args():
-    try:
-        optlist, args = gnu_getopt(sys.argv[1:], "c:b:mt:a:p:h")
-    except GetoptError as err:
-        print(str(err))
-        usage()
-        sys.exit(-1)
-
-    level = None
-    bsize = DEFAULT_BLOCK_SIZE
-    mp = MP_DEFAULT
-    threshold = COMPRESS_THREHOLD_DEFAULT
-    align = None
-    padding = DEFAULT_PADDING
-
-    for o, a in optlist:
-        if o == '-c':
-            level = int(a)
-        elif o == '-b':
-            bsize = int(a)
-        elif o == '-m':
-            mp = True
-        elif o == '-t':
-            threshold = min(int(a), 100)
-        elif o == '-a':
-            align = int(a)
-        elif o == '-p':
-            padding = bytes(a[0], encoding='utf8')
-        elif o == '-h':
-            usage()
-            sys.exit(0)
-
-    if level is None:
-        print("Error: Nível de compressão (-c) é obrigatório no modo CLI.")
-        usage()
-        sys.exit(-1)
-
-    try:
-        fname_in = args[0]
-        fname_out = args[1]
-    except IndexError:
-        print("Error: Você deve especificar os arquivos de entrada e saída.")
-        usage()
-        sys.exit(-1)
-
-    if bsize % 2048 != 0:
-        print("Error: Tamanho do bloco inválido. Deve ser múltiplo de 2048.")
-        sys.exit(-1)
-    
-    return level, bsize, fname_in, fname_out, mp, threshold, align, padding
-
-
 def main():
-    if len(sys.argv) > 1:
-        # CLI Mode
-        level, bsize, fname_in, fname_out, mp, threshold, align, padding = parse_args()
-        
-        print(f"ziso-python 1.0 (CLI)")
-        if level == 0:
-            print(f"Decompressing {fname_in} to {fname_out}...")
-            decompress_zso(fname_in, fname_out)
-        else:
-            print(f"Compressing {fname_in} to {fname_out} (level {level})...")
-            compress_zso(fname_in, fname_out, level, bsize, mp, threshold, align, padding)
-        print("\nDone.")
-
-    elif HAS_GUI:
-        # GUI Mode
-        app = ZisoApp()
-        sys.exit(app.run(sys.argv))
-    else:
-        usage()
-        print("\nError: No GUI backend available (Gtk 4.0/Adw 1) and no CLI arguments provided.")
+    if not HAS_GUI:
+        print("Error: GTK4/Adwaita not available. This application requires a graphical environment.")
         sys.exit(1)
+        
+    app = ZisoApp()
+    sys.exit(app.run(sys.argv))
 
 if __name__ == "__main__":
     main()
